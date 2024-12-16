@@ -12,9 +12,9 @@
 #define AUTHORS_THREE_F ""
 #define AUTHORS_THREE_G ""
 
-#define AUTHORS_FOUR_A ""
-#define AUTHORS_FOUR_B ""
-#define AUTHORS_FOUR_C ""
+#define AUTHORS_FOUR_A "Lukas Knöpfle"
+#define AUTHORS_FOUR_B "Lukas Knöpfle"
+#define AUTHORS_FOUR_C "Lukas Knöpfle"
 
 #define AUTHORS_FIVE_A ""
 #define AUTHORS_FIVE_B ""

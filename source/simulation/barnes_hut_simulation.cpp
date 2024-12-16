@@ -31,9 +31,49 @@ void BarnesHutSimulation::simulate_epoch(Plotter& plotter, Universe& universe, b
 }
 
 void BarnesHutSimulation::get_relevant_nodes(Universe& universe, Quadtree& quadtree, std::vector<QuadtreeNode*>& relevant_nodes, Vector2d<double>& body_position, std::int32_t body_index, double threshold_theta){
-    return;
+    get_relevant_nodes_recursive(quadtree.root, universe, body_position, body_index, threshold_theta, relevant_nodes);
 }
 
-void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtree){
-    return;
+void BarnesHutSimulation::get_relevant_nodes_recursive(QuadtreeNode* node, Universe& universe, Vector2d<double>& body_position, std::int32_t body_index, double threshold_theta, std::vector<QuadtreeNode*>& relevant_nodes) {
+    //falls null
+    if(!node) return;
+
+    // berechne Durchmesser und Abstand kann nicht ins if verlagert werden, da daten schon vor if relevant.
+    double d = node->bounding_box.get_diagonal();
+    Vector2d<double> bn = (body_position - node->center_of_mass);
+    double r = sqrt(std::pow(bn[0], 2) + std::pow(bn[1], 2));
+
+    //wenn threshold erfüllt und K nicht enthalten füge node zu relevant hinzu (Rekursionsanker). Zweite bedingung kann nicht in die If-Verzweigung gelegt werden, da else auch bei nichterfüllen der zweiten bedingung ausgeführt werden muss.
+    if(!(node->bounding_box.contains(body_position)) && d / r < threshold_theta) {
+        relevant_nodes.push_back(node);
+    }
+    else {
+        // Wenn der Knoten Subquadranten hat, prüfe diese rekursiv
+        if(node->body_identifier == -1) {
+            for(auto &child : node->children) {
+                get_relevant_nodes_recursive(child, universe, body_position, body_index, threshold_theta, relevant_nodes);
+            }
+        }
+    }
+
+}
+
+
+void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtree) {
+    //gehe alle Körper durch
+    for(int i = 0; i < universe.num_bodies; i++) {
+        auto f = Vector2d<double>(0, 0);
+        //berechne alle für Körper relevanten nodes
+        auto relevant_nodes = std::vector<QuadtreeNode*>();
+        get_relevant_nodes(universe, quadtree, relevant_nodes, universe.positions[i], i, 0.2);
+
+        //gehe durch alle relevanten Nodes und berechne Kraft auf Körper
+        for(QuadtreeNode node : &relevant_nodes) {
+            Vector2d<double> bn = (universe.positions[i] - node.center_of_mass);
+            double r = sqrt(std::pow(bn[0], 2) + std::pow(bn[1], 2));
+
+            f =  f + bn / r * gravitational_force(universe.weights[i], node.cumulative_mass, r);
+        }
+        universe.forces[i] = f;
+    }
 }
