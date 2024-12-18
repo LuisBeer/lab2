@@ -1,7 +1,7 @@
 #include "simulation/barnes_hut_simulation_with_collisions.h"
-#include "simulation/barnes_hut_simulation.h"
+//#include "simulation/barnes_hut_simulation.h"
 #include "simulation/naive_parallel_simulation.h"
-#include <omp.h>
+//#include <omp.h>
 
 void BarnesHutSimulationWithCollisions::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs){
     for(int i = 0; i < num_epochs; i++){
@@ -38,8 +38,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 
         //berechne Gewicht und Geschwindigkeit
         for(int j = 0; j < collisions.size(); j++) {
-            if(j == biggest) continue;
-
+            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von colisions ist, biggest jedoch ein index im universe. colisions[j] dagegen speichert die Indizes des Universe.
             //addiere Gewicht
             double m2 = universe.weights[biggest] + universe.weights[j];
 
@@ -49,10 +48,25 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
             //neues Gewicht zuweisen
             universe.weights[biggest] = m2;
         }
-
     }
 
-    //for ()
+    //update Universe
+    std::vector<double> remaining_weights;
+    std::vector<Vector2d<double>> remaining_positions;
+    std::vector<Vector2d<double>> remaining_velocities;
+
+    for (int i = 0; i < universe.num_bodies; i++) {
+        if(!is_absorbed[i]) {
+            remaining_positions.push_back(universe.positions[i]);
+            remaining_velocities.push_back(universe.velocities[i]);
+            remaining_weights.push_back(universe.weights[i]);
+        }
+    }
+
+    universe.velocities = remaining_velocities;
+    universe.weights = remaining_weights;
+    universe.positions = remaining_positions;
+
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
