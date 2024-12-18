@@ -61,6 +61,7 @@ void BarnesHutSimulation::get_relevant_nodes_recursive(QuadtreeNode* node, Unive
 
 void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtree) {
     //gehe alle Körper durch
+#pragma omp parallel for
     for(int i = 0; i < universe.num_bodies; i++) {
         auto f = Vector2d<double>(0, 0);
         //berechne alle für Körper relevanten nodes
@@ -68,11 +69,11 @@ void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtre
         get_relevant_nodes(universe, quadtree, relevant_nodes, universe.positions[i], i, 0.2);
 
         //gehe durch alle relevanten Nodes und berechne Kraft auf Körper
-        for(QuadtreeNode node : &relevant_nodes) {
-            Vector2d<double> bn = (universe.positions[i] - node.center_of_mass);
-            double r = sqrt(std::pow(bn[0], 2) + std::pow(bn[1], 2));
+        for(const QuadtreeNode* node : relevant_nodes) {
+            Vector2d<double> bn = (universe.positions[i] - node->center_of_mass);
+            double r = sqrt(bn[0] * bn[0] + bn[1] * bn[1]);
 
-            f =  f + bn / r * gravitational_force(universe.weights[i], node.cumulative_mass, r);
+            f =  f + bn / r * gravitational_force(universe.weights[i], node->cumulative_mass, r);
         }
         universe.forces[i] = f;
     }

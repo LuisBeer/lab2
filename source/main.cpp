@@ -1,4 +1,4 @@
-
+#include <omp.h>
 #include <CLI/App.hpp>
 #include <CLI/Config.hpp>
 #include <CLI/Formatter.hpp>
@@ -18,7 +18,13 @@
 #include <exception>
 
 int main(int argc, char** argv) {
-	auto lab_cli_app = CLI::App{ "" };
+#pragma omp parallel
+		{
+			int id = omp_get_thread_num();
+			std::cout << "Hello from thread " << id << std::endl;
+		}
+		return 0;
+	/*auto lab_cli_app = CLI::App{ "" };
 
 	auto number_epochs = std::uint32_t{ 100 };
 	auto output_image_width = std::uint32_t{800};
@@ -145,5 +151,5 @@ int main(int argc, char** argv) {
 	plotter.add_bodies_to_image(universe);
 	plotter.write_and_clear();
 
-	return 0;
+	return 0;*/
 }
