@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <cstdint>
+#include <valarray>
 
 template <typename T> class Vector2d{
 public:
@@ -48,6 +49,11 @@ public:
             return std::get<1>(contents);
         }
         throw std::invalid_argument("Out of bounds access to Vector2d");
+    }
+
+    [[nodiscard]] double norm() const {
+        const double res = this * this; //std::get<0>(contents) * std::get<0>(contents) + std::get<1>(contents) * std::get<1>(contents)
+        return std::sqrt(res);
     }
 
 private:
