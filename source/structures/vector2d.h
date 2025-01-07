@@ -52,7 +52,7 @@ public:
     }
 
     [[nodiscard]] double norm() const {
-        const double res = this * this; //std::get<0>(contents) * std::get<0>(contents) + std::get<1>(contents) * std::get<1>(contents)
+        const double res = std::get<0>(contents) * std::get<0>(contents) + std::get<1>(contents) * std::get<1>(contents); //std::get<0>(contents) * std::get<0>(contents) + std::get<1>(contents) * std::get<1>(contents)
         return std::sqrt(res);
     }
 
