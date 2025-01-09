@@ -7,21 +7,19 @@
 
 Quadtree::Quadtree(Universe& universe, BoundingBox bounding_box, std::int8_t construct_mode){
     root = new QuadtreeNode(bounding_box);
-
+	std::vector<std::int32_t> vec;
     switch (construct_mode) {
-        case 0:
-            construct(universe, bounding_box, {}); // Implementiere seriellen Aufbau
+    case 0:
+        construct(universe, bounding_box, vec);
         break;
-        case 1:
-            construct_task(universe, bounding_box, {}); // Parallel ohne Cutoff
+    case 1:
+        construct_task(universe, bounding_box, vec);
         break;
-        case 2:
-          	std::vector<std::int32_t> vec = {};
-            construct_task_with_cutoff(universe, bounding_box, vec); // Parallel mit Cutoff
+    case 2:
+        construct_task_with_cutoff(universe, bounding_box, vec);
         break;
-        default:
-            throw std::invalid_argument("Invalid construct_mode");
-    }
+    default:
+        throw std::invalid_argument("Invalid construct_mode");
 }
 
 Quadtree::~Quadtree(){
@@ -49,7 +47,7 @@ std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, Bounding
     return std::vector<QuadtreeNode*>();
 }
 
-std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& universe, BoundingBox& BB,const std::vector<std::int32_t>& body_indices){
+std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& universe, BoundingBox& BB, std::vector<std::int32_t>& body_indices){
     return std::vector<QuadtreeNode*>();
 }
 
