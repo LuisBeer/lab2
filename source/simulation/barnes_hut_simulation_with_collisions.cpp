@@ -79,7 +79,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         //finde alle Körper, die mit i Kollidieren
         std::vector collisions = {i};
         int biggest = i; //index des schwersten Körpers
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(universe, i, is_absorbed, collisions, biggest)
         for(int j = 0; j < universe.num_bodies; j++) {
 
             if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
@@ -100,7 +100,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         double vmGes_y = 0;
         double mGes = 0;
 
-#pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y)
+#pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y) default(shared)
         for(int j = 0; j < collisions.size(); j++) {
             //if(is_absorbed[collisions[j]]) continue; //erneute Prüfung, falls oben fehler durch race condition// kann weg glaub ich weil nicht race condition weg
             //addiere Gewicht

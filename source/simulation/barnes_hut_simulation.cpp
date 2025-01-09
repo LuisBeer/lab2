@@ -2,6 +2,7 @@
 #include "simulation/naive_parallel_simulation.h"
 #include "physics/gravitation.h"
 #include "physics/mechanics.h"
+#include "omp.h"
 
 #include <cmath>
 
@@ -61,7 +62,7 @@ void BarnesHutSimulation::get_relevant_nodes_recursive(QuadtreeNode* node, Unive
 
 void BarnesHutSimulation::calculate_forces(Universe& universe, Quadtree& quadtree) {
     //gehe alle Körper durch
-#pragma omp parallel for
+#pragma omp parallel for default(none) shared(universe, quadtree)
     for(int i = 0; i < universe.num_bodies; i++) {
         auto f = Vector2d<double>(0, 0);
         //berechne alle für Körper relevanten nodes

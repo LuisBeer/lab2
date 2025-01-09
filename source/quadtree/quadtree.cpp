@@ -57,10 +57,18 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
     }
 
     // Unterteile BoundingBox in 4 Subquadranten
-    std::vector<BoundingBox> sub_boxes = BB.subdivide();
+
+    double xmid = BB.x_min + (BB.x_max - BB.x_min)/2;
+    double ymid = BB.y_min + (BB.y_max - BB.y_min)/2;
+    const BoundingBox Q1 = BoundingBox(BB.x_min, xmid, ymid, BB.y_max);
+    const BoundingBox Q2 = BoundingBox(xmid, BB.x_max, ymid, BB.y_max);
+    const BoundingBox Q3 = BoundingBox(BB.x_min, xmid, BB.y_min, ymid);
+    const BoundingBox Q4 = BoundingBox(xmid, BB.x_max, BB.y_min ,ymid);
+    std::vector<BoundingBox> sub_boxes = {Q1, Q2, Q3, Q4};
+
     std::vector<QuadtreeNode*> children_nodes;
 
-    for (const auto& sub_box : sub_boxes) {
+    for (auto& sub_box : sub_boxes) {
         std::vector<int32_t> sub_indices;
 
         // Verteile die Körper auf die Subquadranten
@@ -80,9 +88,6 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
     }
 
     return children_nodes; // Rückgabe aller Subknoten
-
-	return std::vector<QuadtreeNode*>();
-
 }
 
 std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, BoundingBox BB, std::vector<std::int32_t> body_indices) {
