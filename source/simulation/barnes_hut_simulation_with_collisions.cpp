@@ -72,6 +72,74 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
     std::vector is_absorbed(universe.num_bodies, false);
+
+    for(int i = 0; i < universe.num_bodies; i++) {
+        if(is_absorbed[i])continue;
+
+        //finde alle Körper, die mit i Kollidieren
+        std::vector collisions = {i};
+        int biggest = i; //index des schwersten Körpers
+#pragma omp parallel for
+        for(int j = 0; j < universe.num_bodies; j++) {
+
+            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            if(connect.norm() < 100000000) {
+                #pragma omp critical
+                collisions.push_back(j);
+                if(universe.weights[j] > universe.weights[biggest]) {
+                #pragma omp critical
+                    biggest = j;
+                }
+            }
+        }
+
+
+
+        //berechne Gewicht und Geschwindigkeit
+        double vmGes_x = 0;
+        double vmGes_y = 0;
+        double mGes = 0;
+
+#pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y)
+        for(int j = 0; j < collisions.size(); j++) {
+            //if(is_absorbed[collisions[j]]) continue; //erneute Prüfung, falls oben fehler durch race condition// kann weg glaub ich weil nicht race condition weg
+            //addiere Gewicht
+            vmGes_x += universe.velocities[j][0] * universe.weights[j];
+            vmGes_y += universe.velocities[j][1] * universe.weights[j];
+            mGes += universe.weights[j];
+            //Markiere absorbierte Körper
+            if(collisions[j] != biggest) //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
+                is_absorbed[collisions[j]] = true;
+            }
+        universe.weights[biggest] = mGes;
+        universe.velocities[biggest] = Vector2d<double>(vmGes_x, vmGes_y) / mGes;
+    }
+
+    //update Universe
+    std::vector<double> remaining_weights;
+    std::vector<Vector2d<double>> remaining_positions;
+    std::vector<Vector2d<double>> remaining_velocities;
+
+    for (int i = 0; i < universe.num_bodies; i++) {
+        if(!is_absorbed[i]) {
+            remaining_positions.push_back(universe.positions[i]);
+            remaining_velocities.push_back(universe.velocities[i]);
+            remaining_weights.push_back(universe.weights[i]);
+        }
+    }
+
+    universe.velocities = remaining_velocities;
+    universe.weights = remaining_weights;
+    universe.positions = remaining_positions;
+}
+
+
+
+/* //prallelisierung der äußeren schleife
+// Speichert, ob ein Körper bereits "aufgenommen" wurde
+    std::vector is_absorbed(universe.num_bodies, false);
 #pragma omp parallel for
     for(int i = 0; i < universe.num_bodies; i++) {
         if(is_absorbed[i])continue; //überspringe absorbierten Körper ---------- ACHTUNG !!!    Momentan race condition. is_absorbed wird evtl. noch in einem Thread auf true gesetzt hat heir aber noch den wert false.
@@ -132,4 +200,4 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     universe.velocities = remaining_velocities;
     universe.weights = remaining_weights;
     universe.positions = remaining_positions;
-}
+*/
