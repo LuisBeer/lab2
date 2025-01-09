@@ -95,8 +95,6 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             }
         }
 
-
-
         //berechne Gewicht und Geschwindigkeit
         double vmGes_x = 0;
         double vmGes_y = 0;
