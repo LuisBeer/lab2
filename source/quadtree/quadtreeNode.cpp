@@ -46,7 +46,7 @@ Vector2d<double> QuadtreeNode::calculate_node_center_of_mass(){
                 double child_mass = child->calculate_node_cumulative_mass();
                 Vector2d<double> child_center = child->calculate_node_center_of_mass();
 
-                total_center += child_center * child_mass;
+                total_center = total_center + (child_center * child_mass);
                 cumulative_mass += child_mass;
             }
 
