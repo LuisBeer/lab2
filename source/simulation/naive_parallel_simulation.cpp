@@ -48,7 +48,7 @@ void NaiveParallelSimulation::calculate_forces(Universe &universe) {
 void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     //calculate_forces(universe);
 
-    //Parallele Schleife
+    //Parallele Schleif
     #pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         //Beschleunigung
