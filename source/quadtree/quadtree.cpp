@@ -52,6 +52,7 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
         leaf_node->center_of_mass = universe.positions[body_index];
         leaf_node->cumulative_mass_ready = true;
         leaf_node->center_of_mass_ready = true;
+        std::cout << "construct " <<leaf_node->body_identifier << "--" << body_index << std::endl;
         return {leaf_node}; // Direkt zurückgeben
     }
 
