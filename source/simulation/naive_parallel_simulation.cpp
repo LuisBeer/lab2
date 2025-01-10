@@ -27,7 +27,7 @@ void NaiveParallelSimulation::simulate_epoch(Plotter& plotter, Universe& univers
 }
 
 
-void NaiveParallelSimulation::calculate_forces(Universe &universe) {
+/**void NaiveParallelSimulation::calculate_forces(Universe &universe) {
     #pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         Vector2d<double> f(0.0, 0.0);
@@ -41,6 +41,26 @@ void NaiveParallelSimulation::calculate_forces(Universe &universe) {
 
             f = f + connect / d * gravitational_force(universe.weights[i], universe.weights[j], d);
         }
+        universe.forces[i] = f;
+    }
+}**/
+
+void NaiveParallelSimulation::calculate_forces(Universe &universe) {
+    for (int i = 0; i < universe.num_bodies; i++) {
+        Vector2d<double> f(0.0, 0.0);
+
+        for (int j = 0; j < universe.num_bodies; j++) {
+            if (i == j) continue; // Ignoriere die Eigeneinwirkung
+
+            // Verbindungsvektor berechnen
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i];
+            double d = connect.norm();
+
+            // Gravitationkraft berechnen und aufsummieren
+            f = f + connect / d * gravitational_force(universe.weights[i], universe.weights[j], d);
+        }
+
+        // Berechnete Kraft speichern
         universe.forces[i] = f;
     }
 }
@@ -73,13 +93,23 @@ void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     }
 }
 
-void NaiveParallelSimulation::calculate_positions(Universe &universe) {
+/**void NaiveParallelSimulation::calculate_positions(Universe &universe) {
     calculate_velocities(universe);
 
     #pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         Vector2d<double> ds = universe.velocities[i] * epoch_in_seconds;
 
+        universe.positions[i] = universe.positions[i] + ds;
+    }
+}**/
+
+void NaiveParallelSimulation::calculate_positions(Universe &universe) {
+    for (int i = 0; i < universe.num_bodies; i++) {
+        // Positionsänderung berechnen
+        Vector2d<double> ds = universe.velocities[i] * epoch_in_seconds;
+
+        // Neue Position berechnen und speichern
         universe.positions[i] = universe.positions[i] + ds;
     }
 }
