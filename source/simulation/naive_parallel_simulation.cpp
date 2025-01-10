@@ -62,7 +62,7 @@ void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
         //Beschleunigung
         Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
         //Geschwindigkeit
-        Vector2d<double> new_velocity = calculate_velocity(universe.velocities[i], a, epoch_in_seconds);
+        Vector2d<double> new_velocity = calculate_velocity(universe.velocities[i], a, epoch_in_seconds); //Reihenfolge!!!
         universe.velocities[i] = new_velocity;
     }
 }
