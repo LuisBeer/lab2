@@ -27,7 +27,7 @@ void NaiveParallelSimulation::simulate_epoch(Plotter& plotter, Universe& univers
 }
 
 
-/**void NaiveParallelSimulation::calculate_forces(Universe &universe) {
+void NaiveParallelSimulation::calculate_forces(Universe &universe) {
     #pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         Vector2d<double> f(0.0, 0.0);
@@ -43,30 +43,10 @@ void NaiveParallelSimulation::simulate_epoch(Plotter& plotter, Universe& univers
         }
         universe.forces[i] = f;
     }
-}**/
-
-void NaiveParallelSimulation::calculate_forces(Universe &universe) {
-    for (int i = 0; i < universe.num_bodies; i++) {
-        Vector2d<double> f(0.0, 0.0);
-
-        for (int j = 0; j < universe.num_bodies; j++) {
-            if (i == j) continue; // Ignoriere die Eigeneinwirkung
-
-            // Verbindungsvektor berechnen
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i];
-            double d = connect.norm();
-
-            // Gravitationkraft berechnen und aufsummieren
-            f = f + connect / d * gravitational_force(universe.weights[i], universe.weights[j], d);
-        }
-
-        // Berechnete Kraft speichern
-        universe.forces[i] = f;
-    }
 }
 
 
-/**void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
+void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     //calculate_forces(universe);
 
     //Parallele Schleife
@@ -82,34 +62,18 @@ void NaiveParallelSimulation::calculate_forces(Universe &universe) {
         //Beschleunigung
         Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
         //Geschwindigkeit
-        Vector2d<double> new_velocity = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
+        Vector2d<double> new_velocity = calculate_velocity(universe.velocities[i], a, epoch_in_seconds);
         universe.velocities[i] = new_velocity;
-    }
-}**/
-void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
-    for (int i = 0; i < universe.num_bodies; i++) {
-        Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
-        universe.velocities[i] = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
     }
 }
 
-/**void NaiveParallelSimulation::calculate_positions(Universe &universe) {
+void NaiveParallelSimulation::calculate_positions(Universe &universe) {
     calculate_velocities(universe);
 
     #pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         Vector2d<double> ds = universe.velocities[i] * epoch_in_seconds;
 
-        universe.positions[i] = universe.positions[i] + ds;
-    }
-}**/
-
-void NaiveParallelSimulation::calculate_positions(Universe &universe) {
-    for (int i = 0; i < universe.num_bodies; i++) {
-        // Positionsänderung berechnen
-        Vector2d<double> ds = universe.velocities[i] * epoch_in_seconds;
-
-        // Neue Position berechnen und speichern
         universe.positions[i] = universe.positions[i] + ds;
     }
 }
