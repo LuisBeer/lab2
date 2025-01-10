@@ -46,7 +46,7 @@ void NaiveParallelSimulation::calculate_forces(Universe &universe) {
 }
 
 
-void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
+/**void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     //calculate_forces(universe);
 
     //Parallele Schleife
@@ -65,13 +65,13 @@ void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
         Vector2d<double> new_velocity = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
         universe.velocities[i] = new_velocity;
     }
-}
-/**void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
+}**/
+void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     for (int i = 0; i < universe.num_bodies; i++) {
         Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
         universe.velocities[i] = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
     }
-}**/
+}
 
 void NaiveParallelSimulation::calculate_positions(Universe &universe) {
     calculate_velocities(universe);
