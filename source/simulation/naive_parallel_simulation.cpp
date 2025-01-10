@@ -55,7 +55,6 @@ void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
         Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
         //Geschwindigkeit
         Vector2d<double> new_velocity = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
-        std::cout << "Body " << i << ": a = " << a << ", v = " << new_velocity << std::endl;
         universe.velocities[i] = new_velocity;
     }
 }
