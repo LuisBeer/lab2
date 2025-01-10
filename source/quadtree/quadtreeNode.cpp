@@ -19,9 +19,11 @@ double QuadtreeNode::calculate_node_cumulative_mass(){
 
 QuadtreeNode::QuadtreeNode(BoundingBox arg_bounding_box)
         : bounding_box(arg_bounding_box),
-		body_identifier(-1), cumulative_mass(0.0),
+		body_identifier(-1),
+        cumulative_mass(0.0),
         center_of_mass_ready(false),
 		cumulative_mass_ready(false){
+      children = {};
        // Standardinitialisierung der Felder
 }
 
