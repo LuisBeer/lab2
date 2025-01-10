@@ -1,6 +1,6 @@
 #pragma once
 
-#define AUTHORS_TWO_A "Lukas Rothenberger"
+#define AUTHORS_TWO_A "Johannes Pfanger"
 #define AUTHORS_TWO_B "Johannes Pfanger"
 #define AUTHORS_TWO_C "Johannes Pfanger"
 #define AUTHORS_TWO_D "Johannes Pfanger"
