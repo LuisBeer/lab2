@@ -3,6 +3,9 @@
 #include "physics/mechanics.h"
 
 #include <cmath>
+//hab ich hinzugefügt
+#include "constants.h"
+#include <iostream>
 
 void NaiveParallelSimulation::simulate_epochs(Plotter& plotter, Universe& universe, std::uint32_t num_epochs, bool create_intermediate_plots, std::uint32_t plot_intermediate_epochs){
     for(int i = 0; i < num_epochs; i++){
@@ -24,14 +27,44 @@ void NaiveParallelSimulation::simulate_epoch(Plotter& plotter, Universe& univers
 }
 
 
-void NaiveParallelSimulation::calculate_forces(Universe& universe){
-    return;
+void NaiveParallelSimulation::calculate_forces(Universe &universe) {
+    #pragma omp parallel for
+    for (int i = 0; i < universe.num_bodies; i++) {
+        Vector2d<double> f(0.0, 0.0);
+
+        for (int j = 0; j < universe.num_bodies; j++) {
+            if (i == j) continue; //Eigeneabhängigkeit ist unnötig
+
+            //Verbindungsvektor
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i];
+            double d = connect.norm();
+
+            f = f + connect / d * gravitational_force(universe.weights[i], universe.weights[j], d);
+        }
+        universe.forces[i] = f;
+    }
 }
 
-void NaiveParallelSimulation::calculate_velocities(Universe& universe){
-    return;
+void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
+    calculate_forces(universe);
+
+    //Parallele Schleife
+    #pragma omp parallel for
+    for (int i = 0; i < universe.num_bodies; i++) {
+        //Beschleunigung
+        Vector2d<double> a = calculate_acceleration(universe.forces[i], universe.weights[i]);
+        //Geschwindigkeit
+        universe.velocities[i] = calculate_velocity(a, universe.velocities[i], epoch_in_seconds);
+    }
 }
 
-void NaiveParallelSimulation::calculate_positions(Universe& universe){
-    return;
+void NaiveParallelSimulation::calculate_positions(Universe &universe) {
+    calculate_velocities(universe);
+
+    #pragma omp parallel for
+    for (int i = 0; i < universe.num_bodies; i++) {
+        Vector2d<double> ds = universe.velocities[i] * epoch_in_seconds;
+
+        universe.positions[i] = universe.positions[i] + ds;
+    }
 }
