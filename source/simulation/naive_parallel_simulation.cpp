@@ -54,7 +54,7 @@ void NaiveParallelSimulation::calculate_velocities(Universe &universe) {
     for (int i = 0; i < universe.num_bodies; i++) {
 
       	//Debugging
-      	if (universe.forces[i].x == 0 && universe.forces[i].y == 0) {
+      	if (universe.forces[i][0] == 0 && universe.forces[i][1] == 0)
             // Keine Kraft -> Geschwindigkeit bleibt unverändert
             continue;
         }
