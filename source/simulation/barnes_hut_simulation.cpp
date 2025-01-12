@@ -54,6 +54,8 @@ void BarnesHutSimulation::get_relevant_nodes_recursive(QuadtreeNode* node, Unive
             for(auto &child : node->children) {
                 get_relevant_nodes_recursive(child, universe, body_position, body_index, threshold_theta, relevant_nodes);
             }
+        } else if(!node->bounding_box.contains(body_position)){ //wenn body_identifier != -1, dann handelt es sich um einen Blattknoten und er enthält genau einen Himmelskörper. Ein Knoten der also genau einen Himmelskörper enthält aber aufgeteilt werden müsste ist relevant. Darf allerdings nicht K enthalten.
+            relevant_nodes.push_back(node);
         }
     }
 

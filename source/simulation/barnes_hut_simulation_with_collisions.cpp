@@ -24,18 +24,21 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
         std::vector collisions = {i};
         int biggest = i; //index des schwersten Körpers
         for(int j = 0; j < universe.num_bodies; j++) {
-
             if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
-            if(connect.norm() < 100000000) {
+            if(connect.norm() < 100000000000) {
+                is_absorbed[j] = true;
+                std::cout << i << " " << connect.norm() << std::endl;
                 collisions.push_back(j);
-                if(universe.weights[j] > universe.weights[biggest]) {
+                if(universe.weights[j] > universe.weights[biggest]) { //Vergleiche und aktualisiere schwersten Körper
+                    is_absorbed[j] = false;
+                    is_absorbed[biggest] = true;
                     biggest = j;
                 }
             }
         }
-
+        std::cout << biggest << "---" << collisions.size() <<std::endl;
         //berechne Gewicht und Geschwindigkeit
         for(int j = 0; j < collisions.size(); j++) {
             if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von colisions ist, biggest jedoch ein index im universe. colisions[j] dagegen speichert die Indizes des Universe.
@@ -57,6 +60,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 
     for (int i = 0; i < universe.num_bodies; i++) {
         if(!is_absorbed[i]) {
+            std::cout << "ABS: "<<i << " "<< std::endl;
             remaining_positions.push_back(universe.positions[i]);
             remaining_velocities.push_back(universe.velocities[i]);
             remaining_weights.push_back(universe.weights[i]);

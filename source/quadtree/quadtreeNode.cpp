@@ -4,6 +4,7 @@
 
 
 double QuadtreeNode::calculate_node_cumulative_mass(){
+    if(cumulative_mass_ready) return cumulative_mass;
     if (children.empty()) { // Blattknoten
         cumulative_mass_ready = true;
         return cumulative_mass; // Rückgabe der gespeicherten Masse
@@ -36,26 +37,28 @@ QuadtreeNode::~QuadtreeNode(){
 }
 
 Vector2d<double> QuadtreeNode::calculate_node_center_of_mass(){
-            if (children.empty()) { // Blattknoten
-                center_of_mass_ready = true;
-                return center_of_mass; // Rückgabe der gespeicherten Position
-            }
+    if (center_of_mass_ready) return center_of_mass;
 
-            Vector2d<double> total_center(0.0, 0.0);
-            cumulative_mass = 0.0;
+    if (children.empty()) { // Blattknoten
+        center_of_mass_ready = true;
+        return center_of_mass; // Rückgabe der gespeicherten Position
+    }
 
-            for (auto* child : children) {
-                double child_mass = child->calculate_node_cumulative_mass();
-                Vector2d<double> child_center = child->calculate_node_center_of_mass();
+    Vector2d<double> total_center(0.0, 0.0);
+    cumulative_mass = 0.0;
 
-                total_center = total_center + (child_center * child_mass);
-                cumulative_mass += child_mass;
-            }
+    for (auto* child : children) {
+        double child_mass = child->calculate_node_cumulative_mass();
+        Vector2d<double> child_center = child->calculate_node_center_of_mass();
 
-            if (cumulative_mass > 0) {
-                center_of_mass = total_center / cumulative_mass; // Gewichteter Mittelwert
-            }
+        total_center = total_center + (child_center * child_mass);
+        cumulative_mass += child_mass;
+    }
 
-            center_of_mass_ready = true;
-            return center_of_mass;
+    if (cumulative_mass > 0) {
+        center_of_mass = total_center / cumulative_mass; // Gewichteter Mittelwert
+    }
+
+    center_of_mass_ready = true;
+    return center_of_mass;
 }

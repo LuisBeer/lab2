@@ -7,16 +7,19 @@
 
 Quadtree::Quadtree(Universe& universe, BoundingBox bounding_box, std::int8_t construct_mode) {
     root = new QuadtreeNode(bounding_box);
-	std::vector<std::int32_t> vec;
+    std::vector<int> indices;
+    for (int i = 0; i < universe.num_bodies; ++i) {
+        indices.push_back(i);
+    }
     switch (construct_mode) {
     case 0:
-        construct(universe, bounding_box, vec);
+        root->children = construct(universe, bounding_box, indices);
         break;
     case 1:
-        construct_task(universe, bounding_box, vec);
+        root->children = construct_task(universe, bounding_box, indices);
         break;
     case 2:
-        construct_task_with_cutoff(universe, bounding_box, vec);
+        root->children = construct_task_with_cutoff(universe, bounding_box, indices);
         break;
     default:
         throw std::invalid_argument("Invalid construct_mode");
@@ -41,6 +44,7 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
 
     // Basisfall: Kein Körper im Bereich
     if (body_indices.empty()) {
+        //throw std::invalid_argument("Invalid body indices");
         return {};
     }
 // Basisfall: Genau ein Körper -> Blattknoten
@@ -52,7 +56,6 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
         leaf_node->center_of_mass = universe.positions[body_index];
         leaf_node->cumulative_mass_ready = true;
         leaf_node->center_of_mass_ready = true;
-        std::cout << "construct " <<leaf_node->body_identifier << "--" << body_index << std::endl;
         return {leaf_node}; // Direkt zurückgeben
     }
 
@@ -80,10 +83,22 @@ std::vector<QuadtreeNode*> Quadtree::construct(Universe& universe, BoundingBox B
 
         // Rekursiv weiter für jeden Subquadranten
         if (!sub_indices.empty()) {
-            QuadtreeNode* child_node = new QuadtreeNode(sub_box);
-            auto sub_children = construct(universe, sub_box, sub_indices);
-            child_node->children = sub_children;
-            children_nodes.push_back(child_node);
+            //Kind ist ein Blattknoten
+            if(sub_indices.size() == 1) {
+                QuadtreeNode* leaf_node = new QuadtreeNode(sub_box);
+                int body_index = sub_indices[0];
+                leaf_node->body_identifier = body_index;
+                leaf_node->cumulative_mass = universe.weights[body_index];
+                leaf_node->center_of_mass = universe.positions[body_index];
+                leaf_node->cumulative_mass_ready = true;
+                leaf_node->center_of_mass_ready = true;
+                children_nodes.push_back(leaf_node);
+            } else { //Kind hat mehr als einen Himmelskörper und ist somit kein Blatt
+                QuadtreeNode* child_node = new QuadtreeNode(sub_box);
+                auto sub_children = construct(universe, sub_box, sub_indices);
+                child_node->children = sub_children;
+                children_nodes.push_back(child_node);
+            }
         }
     }
 
