@@ -109,7 +109,8 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         int biggest = i; // index des schwersten Körpers
             for (int j = 0; j < universe.num_bodies; j++) {
                 if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
-    #pragma omp critical{
+    #pragma omp critical
+                {
                 Vector2d<double> connect = universe.positions[j] - universe.positions[i];
                 if (connect.norm() < 100000000000) {
                     // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
