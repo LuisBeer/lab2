@@ -44,7 +44,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
         if(is_absorbed[sorted_indices[i]])continue; //überspringe absorbierten Körper
         //finde alle Körper, die mit i Kollidieren
 
-        for(int j = 0; j < sorted_indices.size(); j++) {
+        for(int j = i+1; j < sorted_indices.size(); j++) {
             if(i == j || is_absorbed[sorted_indices[j]]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[sorted_indices[j]] - universe.positions[sorted_indices[i]] ;
@@ -106,7 +106,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         //finde alle Körper, die mit i Kollidieren
 
 #pragma omp parallel for
-        for(int j = 0; j < universe.num_bodies; j++) {
+        for(int j = i+1; j < universe.num_bodies; j++) {
             if(i == j || is_absorbed[sorted_indices[j]]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[sorted_indices[j]] - universe.positions[sorted_indices[i]] ;
