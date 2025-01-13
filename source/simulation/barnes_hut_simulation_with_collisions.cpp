@@ -96,74 +96,54 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
-    std::vector is_absorbed(universe.num_bodies, false);
+    std::vector<bool> is_absorbed(universe.num_bodies, false);
 
-    for(int i = 0; i < universe.num_bodies; i++) {
-        if(is_absorbed[i])continue;
+    #pragma omp parallel for
+    for (int i = 0; i < universe.num_bodies; i++) {
+        if (is_absorbed[i]) continue; //überspringe absorbierten Körper
 
-        //finde alle Körper, die mit i Kollidieren
-        std::vector collisions = {i};
-        int biggest = i; //index des schwersten Körpers
-        #pragma omp parallel for default(none) shared(universe, i, is_absorbed, collisions, biggest)
-        for(int j = 0; j < universe.num_bodies; j++) {
+        // finde alle Körper, die mit i kollidieren
+        std::vector<int> collisions = {i};
+        int biggest = i; // index des schwersten Körpers
 
-            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+        for (int j = 0; j < universe.num_bodies; j++) {
+            if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
-            if(connect.norm() < 100000000000) {
-            #pragma omp critical
-                {
-                is_absorbed[j] = true;
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i];
+            if (connect.norm() < 100000000000) {
+                // Atomare Operation, um den Zugriff auf is_absorbed zu synchronisieren
+                #pragma omp atomic write
+                is_absorbed[j] = true; // erstmal auf absorbiert setzen
+
                 collisions.push_back(j);
-            }
-                if(universe.weights[j] > universe.weights[biggest]) {
-            #pragma omp critical
+                if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
+                    // Keine atomare Operation nötig, da wir sicherstellen, dass nur ein Thread auf 'biggest' zugreift
+                    #pragma omp critical
                     {
-                    is_absorbed[j] = false;
-                    is_absorbed[biggest] = true;
-                    biggest = j;
-                }
+                        if (universe.weights[j] > universe.weights[biggest]) {
+                            is_absorbed[biggest] = false; // der alte, nicht schwerste Körper wird absorbiert
+                            biggest = j;
+                        }
+                    }
                 }
             }
         }
 
+        // berechne Gewicht und Geschwindigkeit
+        for (int j = 0; j < collisions.size(); j++) {
+            if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
 
-        /* //prallel variante
-        //berechne Gewicht und Geschwindigkeit
-        double vmGes_x = 0;
-        double vmGes_y = 0;
-        double mGes = 0;
+            // addiere Gewicht
+            double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
 
-        #pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y)
-        for(int j = 0; j < collisions.size(); j++) {
-            //if(is_absorbed[collisions[j]]) continue; //erneute Prüfung, falls oben fehler durch race condition// kann weg glaub ich weil nicht race condition weg
-            //addiere Gewicht
-            vmGes_x += universe.velocities[j][0] * universe.weights[j];
-            vmGes_y += universe.velocities[j][1] * universe.weights[j];
-            mGes += universe.weights[j];
-            //Markiere absorbierte Körper
-            if(collisions[j] != biggest) //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
-                is_absorbed[collisions[j]] = true;
-        }
-        universe.weights[biggest] = mGes;
-        universe.velocities[biggest] = Vector2d<double>(vmGes_x, vmGes_y) / mGes;
-        */
+            // Geschwindigkeit nach Impulserhaltung
+            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest] +
+                                             universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
 
-        //seriell
-        //berechne Gewicht und Geschwindigkeit
-        for(int j = 0; j < collisions.size(); j++) {
-            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von colisions ist, biggest jedoch ein index im universe. colisions[j] dagegen speichert die Indizes des Universe.
-            //addiere Gewicht
-            double m2 = universe.weights[biggest] + universe.weights[j];
-
-            //Geschwindigkeit nach Impulserhaltung
-            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
-
-            //neues Gewicht zuweisen
+            // neues Gewicht zuweisen
             universe.weights[biggest] = m2;
         }
     }
-
 
     //update Universe
     std::vector<double> remaining_weights;
@@ -258,3 +238,57 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     universe.weights = remaining_weights;
     universe.positions = remaining_positions;
 */
+
+
+/* //Innen Parallel
+    // Speichert, ob ein Körper bereits "aufgenommen" wurde
+    std::vector is_absorbed(universe.num_bodies, false);
+
+    for(int i = 0; i < universe.num_bodies; i++) {
+        if(is_absorbed[i])continue;
+
+        //finde alle Körper, die mit i Kollidieren
+        std::vector collisions = {i};
+        int biggest = i; //index des schwersten Körpers
+        #pragma omp parallel for default(none) shared(universe, i, is_absorbed, collisions, biggest)
+        for(int j = 0; j < universe.num_bodies; j++) {
+
+            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            if(connect.norm() < 100000000000) {
+            #pragma omp critical
+                {
+                is_absorbed[j] = true;
+                collisions.push_back(j);
+            }
+                if(universe.weights[j] > universe.weights[biggest]) {
+
+                    is_absorbed[j] = false;
+                    is_absorbed[biggest] = true;
+                    biggest = j;
+                }
+            }
+        }
+
+
+         //prallel variante
+        //berechne Gewicht und Geschwindigkeit
+        double vmGes_x = 0;
+        double vmGes_y = 0;
+        double mGes = 0;
+
+        #pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y)
+        for(int j = 0; j < collisions.size(); j++) {
+            //if(is_absorbed[collisions[j]]) continue; //erneute Prüfung, falls oben fehler durch race condition// kann weg glaub ich weil nicht race condition weg
+            //addiere Gewicht
+            vmGes_x += universe.velocities[j][0] * universe.weights[j];
+            vmGes_y += universe.velocities[j][1] * universe.weights[j];
+            mGes += universe.weights[j];
+            //Markiere absorbierte Körper
+            if(collisions[j] != biggest) //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
+                is_absorbed[collisions[j]] = true;
+        }
+        universe.weights[biggest] = mGes;
+        universe.velocities[biggest] = Vector2d<double>(vmGes_x, vmGes_y) / mGes;
+        */
