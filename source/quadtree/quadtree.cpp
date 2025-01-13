@@ -188,7 +188,7 @@ std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, Bounding
 }
 
 std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& universe, BoundingBox& BB, std::vector<std::int32_t>& body_indices) {
-  const int cutoff = 100;
+  const int cutoff = 125000;
   // Basisfall: Kein Körper im Bereich
     if (body_indices.empty()) {
         return {};
