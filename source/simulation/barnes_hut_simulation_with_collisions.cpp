@@ -107,47 +107,55 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
-    std::vector<bool> is_absorbed(universe.num_bodies, false);
+    std::vector is_absorbed(universe.num_bodies, false);
 
-#pragma omp parallel for
-    for (int i = 0; i < universe.num_bodies; i++) {
-        if (is_absorbed[i]) continue; //überspringe absorbierten Körper
+    for(int i = 0; i < universe.num_bodies; i++) {
+        //if(is_absorbed[i])continue; //überspringe absorbierten Körper
 
-        // finde alle Körper, die mit i kollidieren
-        std::vector<int> collisions = {i};
-        int biggest = i; // index des schwersten Körpers
-            for (int j = 0; j < universe.num_bodies; j++) {
-                if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+        //finde alle Körper, die mit i Kollidieren
+        std::vector collisions = {i};
+        for(int j = 0; j < universe.num_bodies; j++) {
+            //if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+            if(i == j) continue; //überspringe gleichen (i kann nicht mit i kollidieren)
 
-                Vector2d<double> connect = universe.positions[j] - universe.positions[i];
-                if (connect.norm() < 100000000000) {
-                    // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
-                    collisions.push_back(j);
-                }
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            if(connect.norm() < 100000000000) {
+                collisions.push_back(j);
             }
-
+        }
+        //finde dicksten
+        int biggest = -1; //index des schwersten Körpers
 
 #pragma omp critical
         {
-            // berechne Gewicht und Geschwindigkeit
-            for (int j = 0; j < collisions.size(); j++) {
-                if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
-                if(is_absorbed[j]) continue;
-                is_absorbed[j] = true;
-
-
-                // addiere Gewicht
-                double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
-
-                // Geschwindigkeit nach Impulserhaltung
-                universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest] +
-                                                 universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
-
-                // neues Gewicht zuweisen
-
-                universe.weights[biggest] = m2;
-
+            bool have_to_find_start = true;
+            for  (int collision : collisions) {
+                if(is_absorbed[collision]) continue;
+                if(have_to_find_start) {
+                    biggest = collision;
+                    have_to_find_start = false;
+                    continue;
+                }
+                if(universe.weights[biggest] < universe.weights[collision]) {
+                    is_absorbed[collision] = true;
+                    biggest = collision;
+                }
             }
+            if(have_to_find_start) collisions = {};
+            else is_absorbed[biggest] = true;
+        }
+        //berechne Gewicht und Geschwindigkeit
+        for(int j = 0; j < collisions.size(); j++) {
+            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
+            //addiere Gewicht
+            double m2 = universe.weights[biggest] + universe.weights[j];
+
+            //Geschwindigkeit nach Impulserhaltung
+            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
+
+            //neues Gewicht zuweisen
+        #pragma omp critical
+            universe.weights[biggest] = m2;
         }
     }
 
