@@ -33,12 +33,13 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     std::vector is_absorbed(universe.num_bodies, false);
 
     for(int i = 0; i < universe.num_bodies; i++) {
-        if(is_absorbed[i])continue; //überspringe absorbierten Körper
+        //if(is_absorbed[i])continue; //überspringe absorbierten Körper
 
         //finde alle Körper, die mit i Kollidieren
         std::vector collisions = {i};
         for(int j = 0; j < universe.num_bodies; j++) {
-            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+            //if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+            if(i == j) continue; //überspringe gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
             if(connect.norm() < 100000000000) {
@@ -48,16 +49,16 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
         //finde dicksten
         int biggest = -1; //index des schwersten Körpers
         bool have_to_find_start = true;
-        for  (int j = 0; j < collisions.size(); j++) {
-            if(is_absorbed[collisions[j]]) continue;
+        for  (int collision : collisions) {
+            if(is_absorbed[collision]) continue;
             if(have_to_find_start) {
-                biggest = collisions[j];
+                biggest = collision;
                 have_to_find_start = false;
                 continue;
             }
-            if(universe.weights[biggest] < universe.weights[collisions[j]]) {
-                is_absorbed[collisions[j]] = true;
-                biggest = collisions[j];
+            if(universe.weights[biggest] < universe.weights[collision]) {
+                is_absorbed[collision] = true;
+                biggest = collision;
             }
         }
         if(have_to_find_start) collisions = {};
