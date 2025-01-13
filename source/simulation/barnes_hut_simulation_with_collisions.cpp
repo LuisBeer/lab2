@@ -30,7 +30,7 @@ void BarnesHutSimulationWithCollisions::simulate_epoch(Plotter& plotter, Univers
 
 void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     std::vector<int> sorted_indices;
-    for (int i = 1; i <= universe.num_bodies; ++i) {
+    for (int i = 0; i < universe.num_bodies; i++) {
         sorted_indices.push_back(i);
     }
     std::sort(sorted_indices.begin(), sorted_indices.end(), [&](int a, int b) {
@@ -44,7 +44,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
         if(is_absorbed[sorted_indices[i]])continue; //überspringe absorbierten Körper
         //finde alle Körper, die mit i Kollidieren
 
-        for(int j = 0; j < universe.num_bodies; j++) {
+        for(int j = 0; j < sorted_indices.size(); j++) {
             if(i == j || is_absorbed[sorted_indices[j]]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[sorted_indices[j]] - universe.positions[sorted_indices[i]] ;
@@ -91,7 +91,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
     //sortiere nach gewicht absteigend
     std::vector<int> sorted_indices;
-    for (int i = 1; i <= universe.num_bodies; ++i) {
+    for (int i = 0; i < universe.num_bodies; i++) {
         sorted_indices.push_back(i);
     }
     std::sort(sorted_indices.begin(), sorted_indices.end(), [&](int a, int b) {
