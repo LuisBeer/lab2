@@ -33,13 +33,13 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     std::vector is_absorbed(universe.num_bodies, false);
 
     for(int i = 0; i < universe.num_bodies; i++) {
-        //if(is_absorbed[i])continue; //überspringe absorbierten Körper
+        if(is_absorbed[i])continue; //überspringe absorbierten Körper
 
         //finde alle Körper, die mit i Kollidieren
         std::vector collisions = {i};
         int biggest = i; //index des schwersten Körpers
         for(int j = 0; j < universe.num_bodies; j++) {
-            //if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
             if(connect.norm() < 100000000000) {
@@ -127,27 +127,26 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
                 }
             }
         }
+#pragma omp critical
+        {
+            // berechne Gewicht und Geschwindigkeit
+            for (int j = 0; j < collisions.size(); j++) {
+                if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
+                if(is_absorbed[j]) continue;
+                is_absorbed[j] = true;
 
-        // berechne Gewicht und Geschwindigkeit
-        for (int j = 0; j < collisions.size(); j++) {
-            if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
-            if(is_absorbed[j]) continue;
-            #pragma omp critical
-            {
-            is_absorbed[j] = true;
-            }
 
-            // addiere Gewicht
-            double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
+                // addiere Gewicht
+                double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
 
-            // Geschwindigkeit nach Impulserhaltung
-            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest] +
-                                             universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
+                // Geschwindigkeit nach Impulserhaltung
+                universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest] +
+                                                 universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
 
-            // neues Gewicht zuweisen
-            #pragma omp critical
-            {
+                // neues Gewicht zuweisen
+
                 universe.weights[biggest] = m2;
+
             }
         }
     }
