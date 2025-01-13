@@ -60,7 +60,33 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
             }
         }
     }
-
+    //remove collided objects from universe
+    size_t num_bodies = universe.num_bodies;
+    std::vector<double> new_weights(num_bodies);
+    std::vector<Vector2d<double>> new_positions(num_bodies);
+    std::vector<Vector2d<double>> new_velocities(num_bodies);
+    std::vector<Vector2d<double>> new_forces(num_bodies);
+    for (size_t i = 0; i < sorted_indices.size(); i++)
+    {
+        if (!is_absorbed[i])
+        {
+            size_t index = sorted_indices[i];
+            new_weights[i] = universe.weights[index];
+            new_positions[i] = universe.positions[index];
+            new_velocities[i] = universe.velocities[index];
+            new_forces[i] = universe.forces[index];
+        }
+    }
+    new_weights.shrink_to_fit();
+    universe.weights = new_weights;
+    new_positions.shrink_to_fit();
+    universe.positions = new_positions;
+    new_velocities.shrink_to_fit();
+    universe.velocities = new_velocities;
+    new_forces.shrink_to_fit();
+    universe.forces = new_forces;
+    universe.num_bodies = new_weights.size();
+/*
     //update Universe
     std::vector<double> remaining_weights;
     std::vector<Vector2d<double>> remaining_positions;
@@ -86,6 +112,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     universe.weights.resize(universe.num_bodies);
     universe.positions.resize(universe.num_bodies);
     universe.velocities.resize(universe.num_bodies);
+    */
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
@@ -115,7 +142,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
                 double m2 = universe.weights[sorted_indices[i]] + universe.weights[sorted_indices[j]];
 
                 //Geschwindigkeit nach Impulserhaltung
-                universe.velocities[sorted_indices[i]] = (universe.velocities[sorted_indices[i]] * universe.weights[sorted_indices[i]]  + universe.velocities[sorted_indices[j]] * universe.weights[sorted_indices[j]]) / m2;
+                universe.velocities[sorted_indices[i]] = ((universe.velocities[sorted_indices[i]] * universe.weights[sorted_indices[i]])  + (universe.velocities[sorted_indices[j]] * universe.weights[sorted_indices[j]])) / m2;
 
                 //neues Gewicht zuweisen
                 universe.weights[sorted_indices[i]] = m2;
