@@ -174,6 +174,7 @@ std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, Bounding
 
                         #pragma omp critical
                         local_children.push_back(child_node);
+                       }
                     }
                 }
             }
