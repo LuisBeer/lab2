@@ -123,7 +123,8 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             #pragma omp critical
                     {
                         if (universe.weights[j] > universe.weights[biggest]) {
-                            is_absorbed[biggest] = false; // der alte, nicht schwerste Körper wird absorbiert
+                            is_absorbed[biggest] = true;  // Der alte, nicht mehr schwerste Körper wird absorbiert
+                            is_absorbed[j] = false;       // Der neue schwerste Körper wird nicht absorbiert
                             biggest = j;
                         }
                     }
