@@ -110,12 +110,19 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
-            if(connect.norm() < 100000000) {
-                #pragma omp critical
+            if(connect.norm() < 100000000000) {
+            #pragma omp critical
+                {
+                is_absorbed[j] = true;
                 collisions.push_back(j);
+            }
                 if(universe.weights[j] > universe.weights[biggest]) {
-                    #pragma omp critical
+            #pragma omp critical
+                    {
+                    is_absorbed[j] = false;
+                    is_absorbed[biggest] = true;
                     biggest = j;
+                }
                 }
             }
         }
