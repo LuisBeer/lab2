@@ -98,7 +98,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
     std::vector<bool> is_absorbed(universe.num_bodies, false);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < universe.num_bodies; i++) {
         if (is_absorbed[i]) continue; //überspringe absorbierten Körper
 
@@ -111,14 +111,16 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i];
             if (connect.norm() < 100000000000) {
-                // Atomare Operation, um den Zugriff auf is_absorbed zu synchronisieren
-                #pragma omp atomic write
-                is_absorbed[j] = true; // erstmal auf absorbiert setzen
+                // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
+            #pragma omp critical
+                {
+                    is_absorbed[j] = true; // erstmal auf absorbiert setzen
+                }
 
                 collisions.push_back(j);
                 if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
-                    // Keine atomare Operation nötig, da wir sicherstellen, dass nur ein Thread auf 'biggest' zugreift
-                    #pragma omp critical
+                    // Verwende kritische Sektion, um den Zugriff auf 'biggest' zu synchronisieren
+            #pragma omp critical
                     {
                         if (universe.weights[j] > universe.weights[biggest]) {
                             is_absorbed[biggest] = false; // der alte, nicht schwerste Körper wird absorbiert
