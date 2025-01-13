@@ -127,6 +127,8 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             }
         }
 
+
+        /* //prallel variante
         //berechne Gewicht und Geschwindigkeit
         double vmGes_x = 0;
         double vmGes_y = 0;
@@ -145,7 +147,23 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         }
         universe.weights[biggest] = mGes;
         universe.velocities[biggest] = Vector2d<double>(vmGes_x, vmGes_y) / mGes;
+        */
+
+        //seriell
+        //berechne Gewicht und Geschwindigkeit
+        for(int j = 0; j < collisions.size(); j++) {
+            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von colisions ist, biggest jedoch ein index im universe. colisions[j] dagegen speichert die Indizes des Universe.
+            //addiere Gewicht
+            double m2 = universe.weights[biggest] + universe.weights[j];
+
+            //Geschwindigkeit nach Impulserhaltung
+            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
+
+            //neues Gewicht zuweisen
+            universe.weights[biggest] = m2;
+        }
     }
+
 
     //update Universe
     std::vector<double> remaining_weights;
