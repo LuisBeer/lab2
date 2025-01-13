@@ -41,22 +41,22 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     std::vector is_absorbed(universe.num_bodies, false);
 
     for(int i = 0; i < sorted_indices.size(); i++) {
-        if(is_absorbed[i])continue; //überspringe absorbierten Körper
+        if(is_absorbed[sorted_indices[i]])continue; //überspringe absorbierten Körper
         //finde alle Körper, die mit i Kollidieren
 
         for(int j = 0; j < universe.num_bodies; j++) {
-            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+            if(i == j || is_absorbed[sorted_indices[j]]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            Vector2d<double> connect = universe.positions[sorted_indices[j]] - universe.positions[sorted_indices[i]] ;
             if(connect.norm() < 100000000000) {
-                is_absorbed[j] = true;
-                double m2 = universe.weights[i] + universe.weights[j];
+                is_absorbed[sorted_indices[j]] = true;
+                double m2 = universe.weights[sorted_indices[i]] + universe.weights[sorted_indices[j]];
 
                 //Geschwindigkeit nach Impulserhaltung
-                universe.velocities[i] = (universe.velocities[i] * universe.weights[i]  + universe.velocities[j] * universe.weights[j]) / m2;
+                universe.velocities[sorted_indices[i]] = (universe.velocities[sorted_indices[i]] * universe.weights[sorted_indices[i]]  + universe.velocities[sorted_indices[j]] * universe.weights[sorted_indices[j]]) / m2;
 
                 //neues Gewicht zuweisen
-                universe.weights[i] = m2;
+                universe.weights[sorted_indices[i]] = m2;
             }
         }
     }
