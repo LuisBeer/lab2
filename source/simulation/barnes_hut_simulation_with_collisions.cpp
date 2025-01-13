@@ -29,43 +29,35 @@ void BarnesHutSimulationWithCollisions::simulate_epoch(Plotter& plotter, Univers
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
+    std::vector<int> sorted_indices;
+    for (int i = 1; i <= universe.num_bodies; ++i) {
+        sorted_indices.push_back(i);
+    }
+    std::sort(sorted_indices.begin(), sorted_indices.end(), [&](int a, int b) {
+        return universe.weights[a] > universe.weights[b];
+    });
+
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
     std::vector is_absorbed(universe.num_bodies, false);
 
-    for(int i = 0; i < universe.num_bodies; i++) {
+    for(int i = 0; i < sorted_indices.size(); i++) {
         if(is_absorbed[i])continue; //überspringe absorbierten Körper
-
         //finde alle Körper, die mit i Kollidieren
-        std::vector collisions = {i};
-        int biggest = i; //index des schwersten Körpers
+
         for(int j = 0; j < universe.num_bodies; j++) {
             if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
             if(connect.norm() < 100000000000) {
-                //is_absorbed[j] = true; // erstmal auf absorbiert setze
-                //std::cout << i << " " << connect.norm() << std::endl;
-                collisions.push_back(j);
-                if(universe.weights[j] > universe.weights[biggest]) { //Vergleiche und aktualisiere schwersten Körper
-                    //is_absorbed[j] = false;
-                    //is_absorbed[biggest] = true; //neuer schwerster himmelskörper j wird nicht mehr absorbiert aber der alte nun nicht mehr schwerste wird absorbiert
-                    biggest = j;
-                }
+                is_absorbed[j] = true;
+                double m2 = universe.weights[i] + universe.weights[j];
+
+                //Geschwindigkeit nach Impulserhaltung
+                universe.velocities[i] = (universe.velocities[i] * universe.weights[i]  + universe.velocities[j] * universe.weights[j]) / m2;
+
+                //neues Gewicht zuweisen
+                universe.weights[i] = m2;
             }
-        }
-        //berechne Gewicht und Geschwindigkeit
-        for(int j = 0; j < collisions.size(); j++) {
-            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von colisions ist, biggest jedoch ein index im universe. colisions[j] dagegen speichert die Indizes des Universe.
-            if(is_absorbed[j]) continue;
-            is_absorbed[j] = true;
-            //addiere Gewicht
-            double m2 = universe.weights[biggest] + universe.weights[j];
-
-            //Geschwindigkeit nach Impulserhaltung
-            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
-
-            //neues Gewicht zuweisen
-            universe.weights[biggest] = m2;
         }
     }
 
@@ -175,6 +167,58 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     universe.weights.resize(universe.num_bodies);
     universe.positions.resize(universe.num_bodies);
     universe.velocities.resize(universe.num_bodies);
+    //////////////////////////////////////////////////////////////////////////////////////
+    // Speichert, ob ein Körper bereits "aufgenommen" wurde
+    std::vector is_absorbed(universe.num_bodies, false);
+
+    for(int i = 0; i < universe.num_bodies; i++) {
+        if(is_absorbed[i])continue;
+
+        //finde alle Körper, die mit i Kollidieren
+        std::vector collisions = {i};
+        int biggest = i; //index des schwersten Körpers
+
+        #pragma omp parallel for default(none) shared(universe, i, is_absorbed, collisions, biggest)
+        for(int j = 0; j < universe.num_bodies; j++) {
+
+            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            if(connect.norm() < 100000000000) {
+            #pragma omp critical
+                {
+                is_absorbed[j] = true;
+                collisions.push_back(j);
+            }
+                if(universe.weights[j] > universe.weights[biggest]) {
+
+                    is_absorbed[j] = false;
+                    is_absorbed[biggest] = true;
+                    biggest = j;
+                }
+            }
+        }
+
+
+         //prallel variante
+        //berechne Gewicht und Geschwindigkeit
+        double vmGes_x = 0;
+        double vmGes_y = 0;
+        double mGes = 0;
+
+        #pragma omp parallel for reduction(+:mGes, vmGes_x, vmGes_y)
+        for(int j = 0; j < collisions.size(); j++) {
+            //if(is_absorbed[collisions[j]]) continue; //erneute Prüfung, falls oben fehler durch race condition// kann weg glaub ich weil nicht race condition weg
+            //addiere Gewicht
+            vmGes_x += universe.velocities[j][0] * universe.weights[j];
+            vmGes_y += universe.velocities[j][1] * universe.weights[j];
+            mGes += universe.weights[j];
+            //Markiere absorbierte Körper
+            if(collisions[j] != biggest) //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
+                is_absorbed[collisions[j]] = true;
+        }
+        universe.weights[biggest] = mGes;
+        universe.velocities[biggest] = Vector2d<double>(vmGes_x, vmGes_y) / mGes;
 }
 
 
