@@ -37,6 +37,9 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
         return universe.weights[a] > universe.weights[b];
     });
 
+    for (int i = 0; i < universe.num_bodies; i++) {
+        std::cout << sorted_indices[i] << " | "<< universe.weights[sorted_indices[i]] << std::endl;
+    }
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
     std::vector is_absorbed(universe.num_bodies, false);
 
@@ -161,10 +164,11 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
 
     for (int i = 0; i < universe.num_bodies; i++) {
         if(!is_absorbed[i]) {
-            remaining_positions.push_back(universe.positions[i]);
-            remaining_velocities.push_back(universe.velocities[i]);
-            remaining_weights.push_back(universe.weights[i]);
-            remaining_forces.push_back(universe.forces[i]);
+            size_t index = sorted_indices[i];
+            remaining_positions.push_back(universe.positions[index]);
+            remaining_velocities.push_back(universe.velocities[index]);
+            remaining_weights.push_back(universe.weights[index]);
+            remaining_forces.push_back(universe.forces[index]);
         }
     }
 
