@@ -260,7 +260,7 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
                     #pragma omp task shared(children_nodes)
                     {
                       if (sub_indices.size() == 1) {
-                        QUadtreeNode* leaf_node = new QuadtreeNode(sub_box);
+                        QuadtreeNode* leaf_node = new QuadtreeNode(sub_box);
                         int body_index = sub_indices[0];
                         leaf_node->body_identifier = body_index;
                        	leaf_node->cumulative_mass = universe.weights[body_index];
