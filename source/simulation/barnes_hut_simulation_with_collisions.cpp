@@ -112,10 +112,6 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             Vector2d<double> connect = universe.positions[j] - universe.positions[i];
             if (connect.norm() < 100000000000) {
                 // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
-            #pragma omp critical
-                {
-                    is_absorbed[j] = true; // erstmal auf absorbiert setzen
-                }
 
                 collisions.push_back(j);
                 if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
@@ -123,8 +119,6 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
             #pragma omp critical
                     {
                         if (universe.weights[j] > universe.weights[biggest]) {
-                            is_absorbed[biggest] = true;  // Der alte, nicht mehr schwerste Körper wird absorbiert
-                            is_absorbed[j] = false;       // Der neue schwerste Körper wird nicht absorbiert
                             biggest = j;
                         }
                     }
@@ -135,6 +129,11 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         // berechne Gewicht und Geschwindigkeit
         for (int j = 0; j < collisions.size(); j++) {
             if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
+            #pragma omp critical
+            {
+            if(is_absorbed[j]) continue;
+            is_absorbed[j] = true;
+            }
 
             // addiere Gewicht
             double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
@@ -144,7 +143,10 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
                                              universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
 
             // neues Gewicht zuweisen
-            universe.weights[biggest] = m2;
+            #pragma omp critical
+            {
+                universe.weights[biggest] = m2;
+            }
         }
     }
 
