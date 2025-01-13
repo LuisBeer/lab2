@@ -155,6 +155,19 @@ std::vector<QuadtreeNode*> Quadtree::construct_task(Universe& universe, Bounding
                 if (!sub_indices.empty()) {
                     #pragma omp task shared(local_children)
                     {
+                       if (sub_indices.size() == 1) {
+                            QuadtreeNode* leaf_node = new QuadtreeNode(sub_box);
+                            int body_index = sub_indices[0];
+                            leaf_node->body_identifier = body_index;
+                            leaf_node->cumulative_mass = universe.weights[body_index];
+                            leaf_node->center_of_mass = universe.positions[body_index];
+                            leaf_node->cumulative_mass_ready = true;
+                            leaf_node->center_of_mass_ready = true;
+
+                            #pragma omp critical
+                            local_children.push_back(leaf_node);
+                        }else{
+
                         QuadtreeNode* child_node = new QuadtreeNode(sub_box);
                         auto sub_children = construct_task(universe, sub_box, sub_indices);
                         child_node->children = sub_children;
@@ -219,18 +232,45 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
 
                 // Fall 1: Wenige Körper -> Serielle Konstruktion
                 if (!sub_indices.empty() && sub_indices.size() <= cutoff) {
-                    QuadtreeNode* child_node = new QuadtreeNode(sub_box);
-                    auto sub_children = construct(universe, sub_box, sub_indices);
-                    child_node->children = sub_children;
+                  	if (sub_indices.size() == 1) {
+                        QuadtreeNode* leaf_node = new QuadtreeNode(sub_box);
+                        int body_index = sub_indices[0];
+                        leaf_node->body_identifier = body_index;
+                        leaf_node->cumulative_mass = universe.weights[body_index];
+                        leaf_node->center_of_mass = universe.positions[body_index];
+                        leaf_node->cumulative_mass_ready = true;
+                        leaf_node->center_of_mass_ready = true;
 
-                    #pragma omp critical
-                    children_nodes.push_back(child_node);
+                        #pragma omp critical
+                        children_nodes.push_back(leaf_node);
+                    }else {
+
+                    	QuadtreeNode* child_node = new QuadtreeNode(sub_box);
+                    	auto sub_children = construct(universe, sub_box, sub_indices);
+                    	child_node->children = sub_children;
+
+						#pragma omp critical
+                   		 children_nodes.push_back(child_node);
+                    }
                 }
 
                 // Fall 2: Viele Körper -> Parallelisierte Konstruktion
                 if (!sub_indices.empty() && sub_indices.size() > cutoff) {
                     #pragma omp task shared(children_nodes)
                     {
+                      if (sub_indices.size() == 1) {
+                        QUadtreeNode* leaf_node = new QuadtreeNode(sub_box);
+                        int body_index = sub_indices[0];
+                        leaf_node->body_identifier = body_index;
+                       	leaf_node->cumulative_mass = universe.weights[body_index];
+                        leaf_node->center_of_mass = universe.positions[body_index];
+                        leaf_node->cumulative_mass_ready = true;
+                        leaf_node->center_of_mass_ready = true;
+
+                        #pragma omp critical
+                        children_nodes.push_back(leaf_node);
+                        } else {
+
                         QuadtreeNode* child_node = new QuadtreeNode(sub_box);
                         auto sub_children = construct_task_with_cutoff(universe, sub_box, sub_indices);
                         child_node->children = sub_children;
