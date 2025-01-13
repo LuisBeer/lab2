@@ -28,163 +28,110 @@ void BarnesHutSimulationWithCollisions::simulate_epoch(Plotter& plotter, Univers
     }
 }
 
-void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
-    // Speichert, ob ein Körper bereits "aufgenommen" wurde
-    std::vector is_absorbed(universe.num_bodies, false);
+void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe) {
+    std::vector<bool> merged(universe.num_bodies, false); // Trackt, ob ein Körper bereits verschmolzen wurde.
 
-    for(int i = 0; i < universe.num_bodies; i++) {
-        //if(is_absorbed[i])continue; //überspringe absorbierten Körper
+    for (int i = 0; i < universe.num_bodies; ++i) {
+        if (merged[i]) continue; // Überspringe bereits verschmolzene Körper.
 
-        //finde alle Körper, die mit i Kollidieren
-        std::vector collisions = {i};
-        for(int j = 0; j < universe.num_bodies; j++) {
-            //if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
-            if(i == j) continue; //überspringe gleichen (i kann nicht mit i kollidieren)
+        for (int j = i + 1; j < universe.num_bodies; ++j) {
+            if (merged[j]) continue;
 
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
-            if(connect.norm() < 100000000000) {
-                collisions.push_back(j);
+            // Berechne die Distanz zwischen den Körpern.
+            double distance = (universe.positions[i] - universe.positions[j]).norm();
+
+            if (distance < 100000000.0) { // Kollision erkannt.
+                if (universe.weights[i] >= universe.weights[j]) {
+                    // Körper j wird von Körper i aufgenommen.
+                    universe.velocities[i] = (universe.velocities[i] * universe.weights[i] + universe.velocities[j] * universe.weights[j]) / (universe.weights[i] + universe.weights[j]);
+                    universe.weights[i] += universe.weights[j];
+                    universe.weights[j] = 0;
+                    merged[j] = true;
+                } else {
+                    // Körper i wird von Körper j aufgenommen.
+                    universe.velocities[j] = (universe.velocities[i] * universe.weights[i]  + universe.velocities[j] * universe.weights[j]) / (universe.weights[i] + universe.weights[j]);
+                    universe.weights[j] += universe.weights[i];
+                    universe.weights[i] = 0;
+                    merged[i] = true;
+                    break; // Körper i wurde verschmolzen, keine weiteren Checks nötig.
+                }
             }
-        }
-        //finde dicksten
-        int biggest = -1; //index des schwersten Körpers
-        bool have_to_find_start = true;
-        for  (int collision : collisions) {
-            if(is_absorbed[collision]) continue;
-            if(have_to_find_start) {
-                biggest = collision;
-                have_to_find_start = false;
-                continue;
-            }
-            if(universe.weights[biggest] < universe.weights[collision]) {
-                is_absorbed[collision] = true;
-                biggest = collision;
-            }
-        }
-        if(have_to_find_start) collisions = {};
-        else is_absorbed[biggest] = true;
-
-        //berechne Gewicht und Geschwindigkeit
-        for(int j = 0; j < collisions.size(); j++) {
-            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
-            //addiere Gewicht
-            double m2 = universe.weights[biggest] + universe.weights[j];
-
-            //Geschwindigkeit nach Impulserhaltung
-            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
-
-            //neues Gewicht zuweisen
-            universe.weights[biggest] = m2;
         }
     }
 
-    //update Universe
-    std::vector<double> remaining_weights;
-    std::vector<Vector2d<double>> remaining_positions;
-    std::vector<Vector2d<double>> remaining_velocities;
-    std::vector<Vector2d<double>> remaining_forces;
-
-    for (int i = 0; i < universe.num_bodies; i++) {
-        if(!is_absorbed[i]) {
-            remaining_positions.push_back(universe.positions[i]);
-            remaining_velocities.push_back(universe.velocities[i]);
-            remaining_weights.push_back(universe.weights[i]);
-            remaining_forces.push_back(universe.forces[i]);
+    // Entferne verschmolzene Körper.
+    int new_num_bodies = 0;
+    for (int i = 0; i < universe.num_bodies; ++i) {
+        if (universe.weights[i] > 0) { // Nur unverschmolzene Körper bleiben erhalten.
+            universe.positions[new_num_bodies] = universe.positions[i];
+            universe.velocities[new_num_bodies] = universe.velocities[i];
+            universe.weights[new_num_bodies] = universe.weights[i];
+            ++new_num_bodies;
         }
     }
-
-    universe.num_bodies = remaining_positions.size();
-    universe.velocities = remaining_velocities;
-    universe.weights = remaining_weights;
-    universe.positions = remaining_positions;
-    universe.forces = remaining_forces;
-
-    universe.velocities.resize(universe.num_bodies);
-    universe.weights.resize(universe.num_bodies);
-    universe.positions.resize(universe.num_bodies);
-    universe.velocities.resize(universe.num_bodies);
+    universe.num_bodies = new_num_bodies;
 }
 
-void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
-    // Speichert, ob ein Körper bereits "aufgenommen" wurde
-    std::vector is_absorbed(universe.num_bodies, false);
 
-    for(int i = 0; i < universe.num_bodies; i++) {
-        //if(is_absorbed[i])continue; //überspringe absorbierten Körper
 
-        //finde alle Körper, die mit i Kollidieren
-        std::vector collisions = {i};
-        for(int j = 0; j < universe.num_bodies; j++) {
-            //if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
-            if(i == j) continue; //überspringe gleichen (i kann nicht mit i kollidieren)
+void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
+    std::vector<bool> merged(universe.num_bodies, false); // Trackt, ob ein Körper bereits verschmolzen wurde.
 
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
-            if(connect.norm() < 100000000000) {
-                collisions.push_back(j);
+    #pragma omp parallel
+    {
+        std::vector<bool> local_merged(universe.num_bodies, false); // Lokale Kopie von merged.
+
+        #pragma omp for schedule(dynamic)
+        for (int i = 0; i < universe.num_bodies; ++i) {
+            if (local_merged[i]) continue;
+
+            for (int j = i + 1; j < universe.num_bodies; ++j) {
+                if (local_merged[j]) continue;
+
+                // Berechne die Distanz zwischen den Körpern.
+                double distance = (universe.positions[i] - universe.positions[j]).norm();
+
+                if (distance < 100000000.0) { // Kollision erkannt.
+                    if (universe.weights[i] >= universe.weights[j]) {
+                        // Körper j wird von Körper i aufgenommen.
+                        universe.velocities[i] = (universe.velocities[i] * universe.weights[i] + universe.velocities[j] * universe.weights[j]) / (universe.weights[i] + universe.weights[j]);
+                        universe.weights[i] += universe.weights[j];
+                        universe.weights[j] = 0;
+                        local_merged[j] = true;
+                    } else {
+                        // Körper i wird von Körper j aufgenommen.
+                        universe.velocities[j] = (universe.velocities[i] * universe.weights[i]  + universe.velocities[j] * universe.weights[j]) / (universe.weights[i] + universe.weights[j]);
+                        universe.weights[j] += universe.weights[i];
+                        universe.weights[i] = 0;
+                        local_merged[i] = true;
+                        break; // Körper i wurde verschmolzen, keine weiteren Checks nötig.
+                    }
+                }
             }
         }
-        //finde dicksten
-        int biggest = -1; //index des schwersten Körpers
 
-#pragma omp critical
-        {
-            bool have_to_find_start = true;
-            for  (int collision : collisions) {
-                if(is_absorbed[collision]) continue;
-                if(have_to_find_start) {
-                    biggest = collision;
-                    have_to_find_start = false;
-                    continue;
-                }
-                if(universe.weights[biggest] < universe.weights[collision]) {
-                    is_absorbed[collision] = true;
-                    biggest = collision;
-                }
-            }
-            if(have_to_find_start) collisions = {};
-            else is_absorbed[biggest] = true;
-        }
-        //berechne Gewicht und Geschwindigkeit
-        for(int j = 0; j < collisions.size(); j++) {
-            if(collisions[j] == biggest) continue; //collisions[j] anstatt j selbst, j der index von collisions ist, biggest jedoch ein index im universe. collisions[j] dagegen speichert die Indizes des Universe.
-            //addiere Gewicht
-            double m2 = universe.weights[biggest] + universe.weights[j];
-
-            //Geschwindigkeit nach Impulserhaltung
-            universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest]  + universe.velocities[j] * universe.weights[j]) / m2;
-
-            //neues Gewicht zuweisen
+        // Synchronisiere Änderungen am `merged` Vektor.
         #pragma omp critical
-            universe.weights[biggest] = m2;
+        for (int i = 0; i < universe.num_bodies; ++i) {
+            if (local_merged[i]) {
+                merged[i] = true;
+            }
         }
     }
 
-    //update Universe
-    std::vector<double> remaining_weights;
-    std::vector<Vector2d<double>> remaining_positions;
-    std::vector<Vector2d<double>> remaining_velocities;
-    std::vector<Vector2d<double>> remaining_forces;
-
-    for (int i = 0; i < universe.num_bodies; i++) {
-        if(!is_absorbed[i]) {
-            remaining_positions.push_back(universe.positions[i]);
-            remaining_velocities.push_back(universe.velocities[i]);
-            remaining_weights.push_back(universe.weights[i]);
-            remaining_forces.push_back(universe.forces[i]);
+    // Entferne verschmolzene Körper.
+    int new_num_bodies = 0;
+    for (int i = 0; i < universe.num_bodies; ++i) {
+        if (universe.weights[i] > 0) { // Nur unverschmolzene Körper bleiben erhalten.
+            universe.positions[new_num_bodies] = universe.positions[i];
+            universe.velocities[new_num_bodies] = universe.velocities[i];
+            universe.weights[new_num_bodies] = universe.weights[i];
+            ++new_num_bodies;
         }
     }
-
-    universe.num_bodies = remaining_positions.size();
-    universe.velocities = remaining_velocities;
-    universe.weights = remaining_weights;
-    universe.positions = remaining_positions;
-    universe.forces = remaining_forces;
-
-    universe.velocities.resize(universe.num_bodies);
-    universe.weights.resize(universe.num_bodies);
-    universe.positions.resize(universe.num_bodies);
-    universe.velocities.resize(universe.num_bodies);
+    universe.num_bodies = new_num_bodies;
 }
+
 
 
 
