@@ -131,9 +131,9 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         // berechne Gewicht und Geschwindigkeit
         for (int j = 0; j < collisions.size(); j++) {
             if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
+            if(is_absorbed[j]) continue;
             #pragma omp critical
             {
-            if(is_absorbed[j]) continue;
             is_absorbed[j] = true;
             }
 
