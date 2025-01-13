@@ -89,7 +89,6 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
-    //sortiere nach gewicht absteigend
     std::vector<int> sorted_indices;
     for (int i = 0; i < universe.num_bodies; i++) {
         sorted_indices.push_back(i);
@@ -101,12 +100,13 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
     std::vector is_absorbed(universe.num_bodies, false);
 
+
     for(int i = 0; i < sorted_indices.size(); i++) {
         if(is_absorbed[sorted_indices[i]])continue; //überspringe absorbierten Körper
         //finde alle Körper, die mit i Kollidieren
 
 #pragma omp parallel for
-        for(int j = i+1; j < universe.num_bodies; j++) {
+        for(int j = i+1; j < sorted_indices.size(); j++) {
             if(i == j || is_absorbed[sorted_indices[j]]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
             Vector2d<double> connect = universe.positions[sorted_indices[j]] - universe.positions[sorted_indices[i]] ;
