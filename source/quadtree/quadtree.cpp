@@ -278,7 +278,8 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
 
                         #pragma omp critical
                         children_nodes.push_back(child_node);
-                      	}
+                        }
+
                     }
                 }
             }
@@ -288,7 +289,6 @@ std::vector<QuadtreeNode*> Quadtree::construct_task_with_cutoff(Universe& univer
 
     return children_nodes;
   }
-}
 
 std::vector<BoundingBox> Quadtree::get_bounding_boxes(QuadtreeNode* qtn) {
     // traverse quadtree and collect bounding boxes
