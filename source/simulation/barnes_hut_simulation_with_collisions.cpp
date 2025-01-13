@@ -88,56 +88,37 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     universe.velocities.resize(universe.num_bodies);
 }
 
-void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe){
+void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
+    //sortiere nach gewicht absteigend
+    std::vector<int> sorted_indices;
+    for (int i = 1; i <= universe.num_bodies; ++i) {
+        sorted_indices.push_back(i);
+    }
+    std::sort(sorted_indices.begin(), sorted_indices.end(), [&](int a, int b) {
+        return universe.weights[a] > universe.weights[b];
+    });
+
     // Speichert, ob ein Körper bereits "aufgenommen" wurde
-    std::vector<bool> is_absorbed(universe.num_bodies, false);
+    std::vector is_absorbed(universe.num_bodies, false);
+
+    for(int i = 0; i < sorted_indices.size(); i++) {
+        if(is_absorbed[i])continue; //überspringe absorbierten Körper
+        //finde alle Körper, die mit i Kollidieren
 
 #pragma omp parallel for
-    for (int i = 0; i < universe.num_bodies; i++) {
-        if (is_absorbed[i]) continue; //überspringe absorbierten Körper
+        for(int j = 0; j < universe.num_bodies; j++) {
+            if(i == j || is_absorbed[j]) continue; //überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
-        // finde alle Körper, die mit i kollidieren
-        std::vector<int> collisions = {i};
-        int biggest = i; // index des schwersten Körpers
-            for (int j = 0; j < universe.num_bodies; j++) {
-                if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
-
-                Vector2d<double> connect = universe.positions[j] - universe.positions[i];
-                if (connect.norm() < 100000000000) {
-                    // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
-
-                    collisions.push_back(j);
-                    if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
-                        // Verwende kritische Sektion, um den Zugriff auf 'biggest' zu synchronisieren
-                #pragma omp critical
-                        {
-                        if (universe.weights[j] > universe.weights[biggest]) {
-                            biggest = j;
-                        }
-                        }
-                    }
-                }
-            }
-#pragma omp critical
-        {
-            // berechne Gewicht und Geschwindigkeit
-            for (int j = 0; j < collisions.size(); j++) {
-                if (collisions[j] == biggest) continue; // collisions[j] anstatt j selbst
-                if(is_absorbed[j]) continue;
+            Vector2d<double> connect = universe.positions[j] - universe.positions[i] ;
+            if(connect.norm() < 100000000000) {
                 is_absorbed[j] = true;
+                double m2 = universe.weights[i] + universe.weights[j];
 
+                //Geschwindigkeit nach Impulserhaltung
+                universe.velocities[i] = (universe.velocities[i] * universe.weights[i]  + universe.velocities[j] * universe.weights[j]) / m2;
 
-                // addiere Gewicht
-                double m2 = universe.weights[biggest] + universe.weights[collisions[j]];
-
-                // Geschwindigkeit nach Impulserhaltung
-                universe.velocities[biggest] = (universe.velocities[biggest] * universe.weights[biggest] +
-                                                 universe.velocities[collisions[j]] * universe.weights[collisions[j]]) / m2;
-
-                // neues Gewicht zuweisen
-
-                universe.weights[biggest] = m2;
-
+                //neues Gewicht zuweisen
+                universe.weights[i] = m2;
             }
         }
     }
@@ -167,8 +148,7 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
     universe.weights.resize(universe.num_bodies);
     universe.positions.resize(universe.num_bodies);
     universe.velocities.resize(universe.num_bodies);
-    //////////////////////////////////////////////////////////////////////////////////////
-    }
+}
 
 
 
