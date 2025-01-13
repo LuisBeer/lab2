@@ -60,6 +60,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
             }
         }
     }
+   /*
     //remove collided objects from universe
     size_t num_bodies = universe.num_bodies;
     std::vector<double> new_weights(num_bodies);
@@ -86,7 +87,8 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     new_forces.shrink_to_fit();
     universe.forces = new_forces;
     universe.num_bodies = new_weights.size();
-/*
+    */
+
     //update Universe
     std::vector<double> remaining_weights;
     std::vector<Vector2d<double>> remaining_positions;
@@ -95,10 +97,11 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
 
     for (int i = 0; i < universe.num_bodies; i++) {
         if(!is_absorbed[i]) {
-            remaining_positions.push_back(universe.positions[i]);
-            remaining_velocities.push_back(universe.velocities[i]);
-            remaining_weights.push_back(universe.weights[i]);
-            remaining_forces.push_back(universe.forces[i]);
+            size_t index = sorted_indices[i];
+            remaining_positions.push_back(universe.positions[index]);
+            remaining_velocities.push_back(universe.velocities[index]);
+            remaining_weights.push_back(universe.weights[index]);
+            remaining_forces.push_back(universe.forces[index]);
         }
     }
 
@@ -112,7 +115,7 @@ void BarnesHutSimulationWithCollisions::find_collisions(Universe& universe){
     universe.weights.resize(universe.num_bodies);
     universe.positions.resize(universe.num_bodies);
     universe.velocities.resize(universe.num_bodies);
-    */
+
 }
 
 void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& universe) {
