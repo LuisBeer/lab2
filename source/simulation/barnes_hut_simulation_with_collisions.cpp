@@ -107,21 +107,23 @@ void BarnesHutSimulationWithCollisions::find_collisions_parallel(Universe& unive
         // finde alle Körper, die mit i kollidieren
         std::vector<int> collisions = {i};
         int biggest = i; // index des schwersten Körpers
+#pragma omp critical
+        {
+            for (int j = 0; j < universe.num_bodies; j++) {
+                if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
 
-        for (int j = 0; j < universe.num_bodies; j++) {
-            if (i == j || is_absorbed[j]) continue; // überspringe absorbierten Körper oder gleichen (i kann nicht mit i kollidieren)
+                Vector2d<double> connect = universe.positions[j] - universe.positions[i];
+                if (connect.norm() < 100000000000) {
+                    // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
 
-            Vector2d<double> connect = universe.positions[j] - universe.positions[i];
-            if (connect.norm() < 100000000000) {
-                // Verwende kritische Sektion, um den Zugriff auf is_absorbed zu synchronisieren
-
-                collisions.push_back(j);
-                if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
-                    // Verwende kritische Sektion, um den Zugriff auf 'biggest' zu synchronisieren
-            #pragma omp critical
-                    {
+                    collisions.push_back(j);
+                    if (universe.weights[j] > universe.weights[biggest]) { // Vergleiche und aktualisiere schwersten Körper
+                        // Verwende kritische Sektion, um den Zugriff auf 'biggest' zu synchronisieren
+                        //#pragma omp critical
+                        //{
                         if (universe.weights[j] > universe.weights[biggest]) {
                             biggest = j;
+                            //}
                         }
                     }
                 }
